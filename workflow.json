@@ -1,0 +1,115 @@
+{
+  "name": "n8n-linkedin-content-automation",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [-400, -100],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ai-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [-150, -100],
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a LinkedIn content assistant.\n\nToday's date is {{ $now.format('MMMM D, YYYY') }}.\n\nTask:\n1. Search the \"LinkedIn Content Hub\" database in Notion\n2. Find all posts where:\n   - Status = \"Scheduled\"\n   - PostDate = today's date\n3. For each post found, return:\n   - Title\n   - Draft content\n   - Tags\n\nIf no posts are scheduled for today, say \"No posts scheduled for today.\""
+      }
+    },
+    {
+      "id": "gemini-model",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [-150, 100],
+      "parameters": {}
+    },
+    {
+      "id": "mcp-client",
+      "name": "MCP Client",
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1,
+      "position": [100, 100],
+      "parameters": {
+        "endpointUrl": "https://mcp.pipedream.net/v2",
+        "authentication": "mcpOAuth2Api"
+      }
+    },
+    {
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [150, -100],
+      "parameters": {
+        "sendTo": "your-email@example.com",
+        "subject": "LinkedIn Content Automation Update",
+        "message": "=<p>Hello,</p><p>Your LinkedIn automation ran successfully.</p><p>— n8n</p>"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
